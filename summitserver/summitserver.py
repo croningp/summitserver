@@ -6,6 +6,7 @@ import selectors
 import socket
 
 from .utils.logger import get_logger
+from .handler import Handler
 
 
 class SummitServer:
@@ -21,6 +22,8 @@ class SummitServer:
         self.selector = selectors.DefaultSelector()
 
         self.server = self.start_server(port)
+
+        self.handler = Handler()
 
     def start_server(self, port):
         """ Starts a TCPIP socket, listening at "dragonsoop2" and given port.
@@ -62,9 +65,4 @@ class SummitServer:
                     self.accept(key.fileobj, mask)
                 elif key.data == 2: # incoming message over connection
                     self.logger.debug('Read ready %s', key)
-                    recvd = key.fileobj.recv(1024)
-                    if not recvd:
-                        # socket closed, unregistering
-                        self.selector.unregister(key.fileobj)
-                        key.fileobj.close()
-                    print(recvd)
+                    self.handler(key.fileobj)

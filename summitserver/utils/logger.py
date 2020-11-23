@@ -38,17 +38,18 @@ def get_logger(
     ch.setFormatter(ff)
     logger.addHandler(ch)
 
-    # file handler
-    os.makedirs(LOG_PATH, exist_ok=True)
-    file_path = os.path.join(LOG_PATH, logger_filename)
-    fh = RotatingFileHandler(
-        filename=file_path,
-        mode='a',
-        maxBytes=MAX_BYTES_SIZE,
-        backupCount=BACKUP_COUNT
-    )
-    fh.setLevel(logging.DEBUG)
-    fh.setFormatter(ff)
-    logger.addHandler(fh)
+    if logger_filename is not None:
+        # file handler
+        os.makedirs(LOG_PATH, exist_ok=True)
+        file_path = os.path.join(LOG_PATH, logger_filename)
+        fh = RotatingFileHandler(
+            filename=file_path,
+            mode='a',
+            maxBytes=MAX_BYTES_SIZE,
+            backupCount=BACKUP_COUNT
+        )
+        fh.setLevel(logging.DEBUG)
+        fh.setFormatter(ff)
+        logger.addHandler(fh)
 
     return logger
