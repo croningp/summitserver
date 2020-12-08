@@ -5,6 +5,7 @@ import json
 import logging
 
 from .utils.logger import get_logger
+from .optimization_handler import OptimizationHandler
 
 
 class Handler:
@@ -19,7 +20,6 @@ class Handler:
     def register_connection(self, connection):
         """ Registering the connection. """
 
-
         self.connections.add(connection)
         self.logger.info('Connection from %s registered.',
                          connection.getsockname())
@@ -27,7 +27,7 @@ class Handler:
     def register_request(self, request):
         """ Registering the request with the optimization hash. """
         self.optimizations.update({
-            f'{request["hash"]}': OptimizationHandler(**request)
+            f'{request["hash"]}': OptimizationHandler(request)
             })
         self.logger.info('Registered request with %s hash', request['hash'])
 
@@ -50,12 +50,3 @@ class Handler:
             return
         reply = self.handle_request(request)
         connection.sendall(reply)
-
-
-class OptimizationHandler:
-
-    def __init__(self, **kwargs):
-        self.__dict__.update(kwargs)
-
-    def __call__(self):
-        return self.__dict__
