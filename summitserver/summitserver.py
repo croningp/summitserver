@@ -6,7 +6,7 @@ import selectors
 import socket
 
 from .utils.logger import get_logger
-from .handler import Handler
+from .connection_handler import Handler
 
 
 class SummitServer:

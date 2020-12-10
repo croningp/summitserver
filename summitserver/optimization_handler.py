@@ -6,6 +6,7 @@ from summit.domain import (
     Domain,
     ContinuousVariable,
 )
+from summit.utils.dataset import DataSet
 
 from .constants import ALGORITHMS_MAPPING
 
@@ -23,6 +24,10 @@ class OptimizationHandler:
 
         self.strategy = None
 
+        self.suggestions = iter([])
+
+        self.last_results = None
+
     def _build_domain(self, parameters):
         """ Build SUMMIT domain from given parameters dictionary.
 
@@ -32,16 +37,16 @@ class OptimizationHandler:
                 and "target" dictionary for reaction targets.
         """
 
-        for key, value in parameters['parameters']:
+        for key, value in parameters['parameters'].items():
             # continuous variable, having min and max values
             if 'max_value' in value and 'min_value' in value:
                 self.domain += ContinuousVariable(
                     name=key,
                     description=key,
-                    bounds=[value['min_value'], value['max_vaule']],
+                    bounds=[value['min_value'], value['max_value']],
                 )
 
-        for key, value in parameters['target']:
+        for key, value in parameters['target'].items():
             self.domain += ContinuousVariable(
                 name=key,
                 description=key,
@@ -57,9 +62,53 @@ class OptimizationHandler:
             **self.algorithm_props
         )
 
-    def call_strategy(self, request):
-        """ Calls the strategy for the new parameter set. """
+    def _to_dataset(self, data):
+        """ Build SUMMIT DataSet object from parameter dictionary.
 
+        SUMMIT DataSet is a custom wrapper over pandas DataFrame, containing
+        columns metadata. Custom constructor needed.
+
+        Args:
+            data (Dict): parameter dictionary, as received from the optimizer
+                client.
+
+        Returns:
+            :obj:DataSet: SUMMIT dataset.
+        """
+
+    def _from_dataset(self, dataset):
+        """ Convert SUMMIT DataSet object to parameter dictionary.
+
+        Args:
+            dataset (:obj:Dataset): SUMMIT DataSet containing information about
+                experiment setup.
+
+        Returns:
+            Dict: experiment setup dictionary, as sent to the optimizer client.
+        """
+
+    def query_next_experiment(self):
+        """ Calls the strategy for the new parameter set. """
+        while True:
+            try:
+                # will return a tuple from DataFrame as (ROW_ID, VALUE)
+                suggestion = next(self.suggestions)
+                return {
+                    variable.name: suggestion[1][variable.name][0]
+                    for variable in self.domain.variables
+                    if not variable.is_objective
+                }
+            except StopIteration:
+                # not all strategies require num_experiments positional argument
+                try:
+                    suggestion = self.strategy.suggest_experiments()
+                except TypeError:
+                    suggestion = self.strategy.suggest_experiments(
+                        num_experiments=1)
+                # since not all strategies return single suggestion
+                # even when just one was requested
+                # the iterator is used
+                self.suggestions = suggestion.iterrows()
 
     def __call__(self, request):
         """ Main call to handle request. """
@@ -67,4 +116,4 @@ class OptimizationHandler:
             self._build_domain(request)
             self.build_strategy()
             return self.strategy.to_dict()
-        return self.call_strategy(request)
+        return self.query_next_experiment()

@@ -36,7 +36,7 @@ class Handler:
         request = json.loads(request.decode())
         if request['hash'] not in self.optimizations:
             self.register_request(request)
-        reply = self.optimizations[request['hash']]()
+        reply = self.optimizations[request['hash']](request)
         reply = bytes(json.dumps(reply), encoding='ascii')
 
         return reply
