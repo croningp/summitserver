@@ -3,6 +3,7 @@ Module represents a connection handler to parse and process user requests.
 """
 import json
 import logging
+import traceback
 
 from .utils.logger import get_logger
 from .optimization_handler import OptimizationHandler
@@ -34,9 +35,13 @@ class Handler:
     def handle_request(self, request):
         """ Invoking OptimizationHandler to process the incoming request. """
         request = json.loads(request.decode())
-        if request['hash'] not in self.optimizations:
-            self.register_request(request)
-        reply = self.optimizations[request['hash']](request)
+        try:
+            if request['hash'] not in self.optimizations:
+                self.register_request(request)
+            reply = self.optimizations[request['hash']](request)
+        except: # pylint: disable=bare-except
+            tb = traceback.format_exc()
+            reply = {'exception': tb}
         reply = bytes(json.dumps(reply), encoding='ascii')
 
         return reply
