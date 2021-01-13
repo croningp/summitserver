@@ -65,4 +65,9 @@ class SummitServer:
                     self.accept(key.fileobj, mask)
                 elif key.data == 2: # incoming message over connection
                     self.logger.debug('Read ready %s', key)
-                    self.handler(key.fileobj)
+                    # only True when connection is closed
+                    closed = self.handler(key.fileobj)
+                    if closed:
+                        self.logger.info('Connection from %s closed',
+                                         key.fileobj.getsockname())
+                        self.selector.unregister(key.fileobj)

@@ -52,6 +52,6 @@ class Handler:
         request = connection.recv(1024)
         if not request:
             connection.close()
-            return
+            return True
         reply = self.handle_request(request)
         connection.sendall(reply)
