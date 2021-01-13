@@ -2,6 +2,8 @@
 Module represents an optimization request handler.
 """
 
+import logging
+
 from summit.domain import (
     Domain,
     ContinuousVariable,
@@ -9,6 +11,7 @@ from summit.domain import (
 from summit.utils.dataset import DataSet
 
 from .constants import ALGORITHMS_MAPPING
+from .utils.logger import get_logger
 
 
 class OptimizationHandler:
@@ -27,6 +30,13 @@ class OptimizationHandler:
         self.suggestions = iter([])
 
         self.last_results = None
+
+        # registering logger
+        self.logger = get_logger(
+            f'summit-server.optimization-handler-{self.proc_hash}',
+            logging.DEBUG,
+            None
+        )
 
     def _build_domain(self, parameters):
         """ Build SUMMIT domain from given parameters dictionary.
@@ -109,6 +119,12 @@ class OptimizationHandler:
                 # even when just one was requested
                 # the iterator is used
                 self.suggestions = suggestion.iterrows()
+
+    def register_result(self, request):
+        """ Register last result from the client request. """
+
+        if self.last_results is None:
+            self.last_results = DataSet()
 
     def __call__(self, request):
         """ Main call to handle request. """

@@ -13,7 +13,7 @@ class Handler:
 
     def __init__(self):
 
-        self.logger = get_logger('handler', logging.INFO, None)
+        self.logger = get_logger('summit-server.handler', logging.DEBUG, None)
 
         self.connections = set()
         self.optimizations = {}
