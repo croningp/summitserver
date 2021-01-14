@@ -52,6 +52,9 @@ class OptimizationHandler:
 
         self.suggestions = iter([])
 
+        # placeholder for the last suggested experiments
+        self.prev_suggestion = DataSet()
+
         self.last_results = None
 
         # registering logger
@@ -85,6 +88,8 @@ class OptimizationHandler:
                 maximize=True,
             )
 
+        self.logger.debug('Built Domain: %s', self.domain.to_dict())
+
     def build_strategy(self):
         """ Build SUMMIT strategy from the given method dictionary. """
         self.strategy = ALGORITHMS_MAPPING[self.algorithm_props.pop('name')](
@@ -109,18 +114,26 @@ class OptimizationHandler:
             try:
                 # will return a tuple from DataFrame as (ROW_ID, VALUE)
                 suggestion = next(self.suggestions)
+                self.logger.debug('Yielding suggestion from suggestion pool.')
                 return {
                     variable.name: suggestion[1][variable.name][0]
                     for variable in self.domain.variables
                     if not variable.is_objective
                 }
             except StopIteration:
+                self.logger.debug('No more suggestion in pool, querying.')
                 # not all strategies require num_experiments positional argument
                 try:
-                    suggestion = self.strategy.suggest_experiments()
+                    suggestion = self.strategy.suggest_experiments(
+                        prev_res=self.last_results
+                    )
                 except TypeError:
                     suggestion = self.strategy.suggest_experiments(
-                        num_experiments=1)
+                        num_experiments=1,
+                        prev_res=self.last_results
+                    )
+                self.logger.info('Obtained new suggestion from strategy: %r',
+                                 suggestion)
                 # since not all strategies return single suggestion
                 # even when just one was requested
                 # the iterator is used
@@ -130,7 +143,21 @@ class OptimizationHandler:
         """ Register last result from the client request. """
 
         if self.last_results is None:
-            self.last_results = DataSet()
+            # initial record
+            self.logger.debug('Registering initial result from %s', request)
+            self.last_results = to_dataset(request)
+
+        elif len(self.last_results) != len(self.prev_suggestion):
+            # last result should always match
+            # the dimension of previously suggested experiment DataSet
+            self.last_results = self.last_results.append(
+                to_dataset(request),
+                ignore_index=True
+            )
+
+        else:
+            self.logger.debug('New last result from %s', request)
+            self.last_results = to_dataset(request)
 
     def __call__(self, request):
         """ Main call to handle request. """
@@ -138,4 +165,8 @@ class OptimizationHandler:
             self._build_domain(request)
             self.build_strategy()
             return self.strategy.to_dict()
+
+        if 'result' in request:
+            self.register_result(request)
+
         return self.query_next_experiment()
