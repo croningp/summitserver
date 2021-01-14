@@ -68,6 +68,4 @@ class SummitServer:
                     # only True when connection is closed
                     closed = self.handler(key.fileobj)
                     if closed:
-                        self.logger.info('Connection from %s closed',
-                                         key.fileobj.getsockname())
                         self.selector.unregister(key.fileobj)

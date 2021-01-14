@@ -5,7 +5,6 @@ import json
 import logging
 import traceback
 
-from .utils.logger import get_logger
 from .optimization_handler import OptimizationHandler
 
 
@@ -13,7 +12,7 @@ class Handler:
 
     def __init__(self):
 
-        self.logger = get_logger('summit-server.handler', logging.DEBUG, None)
+        self.logger = logging.getLogger('summit-server.handler')
 
         self.connections = set()
         self.optimizations = {}
@@ -49,8 +48,16 @@ class Handler:
     def __call__(self, connection):
         if connection not in self.connections:
             self.register_connection(connection)
-        request = connection.recv(1024)
+        try:
+            request = connection.recv(1024)
+        except ConnectionResetError:
+            self.logger.info('Connection <%s> reset',
+                              connection.getsockname())
+            connection.close()
+            return True
         if not request:
+            self.logger.info('Connection from %s closed',
+                             connection.getsockname())
             connection.close()
             return True
         reply = self.handle_request(request)
