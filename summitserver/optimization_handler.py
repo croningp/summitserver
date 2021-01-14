@@ -11,8 +11,31 @@ from summit.domain import (
 from summit.utils.dataset import DataSet
 
 from .constants import ALGORITHMS_MAPPING
-from .utils.logger import get_logger
 
+
+DATA = 'DATA' # metadata for physical data in summit DataSet
+
+def to_dataset(data):
+    """ Build SUMMIT DataSet object from parameter dictionary.
+
+    SUMMIT DataSet is a custom wrapper over pandas DataFrame, containing
+    columns metadata. Custom constructor needed.
+
+    Args:
+        data (Dict): parameter and target dictionary, as received from the
+            optimizer client.
+
+    Returns:
+        :obj:DataSet: SUMMIT dataset.
+    """
+    # appending parameters metadata
+    ds = {(key, DATA): value for key, value in data['parameters'].items()}
+    # appending result metadata
+    ds.update({(key, DATA): value for key, value in data['result'].items()})
+
+    ds = DataSet([ds], columns=[key[0] for key in ds])
+
+    return ds
 
 class OptimizationHandler:
 
@@ -32,11 +55,8 @@ class OptimizationHandler:
         self.last_results = None
 
         # registering logger
-        self.logger = get_logger(
-            f'summit-server.optimization-handler-{self.proc_hash}',
-            logging.DEBUG,
-            None
-        )
+        self.logger = logging.getLogger(
+            f'summit-server.optimization-handler-{self.proc_hash}')
 
     def _build_domain(self, parameters):
         """ Build SUMMIT domain from given parameters dictionary.
@@ -71,20 +91,6 @@ class OptimizationHandler:
             domain=self.domain,
             **self.algorithm_props
         )
-
-    def _to_dataset(self, data):
-        """ Build SUMMIT DataSet object from parameter dictionary.
-
-        SUMMIT DataSet is a custom wrapper over pandas DataFrame, containing
-        columns metadata. Custom constructor needed.
-
-        Args:
-            data (Dict): parameter dictionary, as received from the optimizer
-                client.
-
-        Returns:
-            :obj:DataSet: SUMMIT dataset.
-        """
 
     def _from_dataset(self, dataset):
         """ Convert SUMMIT DataSet object to parameter dictionary.
