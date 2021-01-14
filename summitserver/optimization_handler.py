@@ -96,6 +96,9 @@ class OptimizationHandler:
             domain=self.domain,
             **self.algorithm_props
         )
+        self.logger.info('Registered strategy %s for <%s>.',
+                         self.strategy.__class__.__name__,
+                         self.proc_hash)
 
     def _from_dataset(self, dataset):
         """ Convert SUMMIT DataSet object to parameter dictionary.
