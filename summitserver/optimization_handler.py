@@ -59,7 +59,7 @@ class OptimizationHandler:
 
         # registering logger
         self.logger = logging.getLogger(
-            f'summit-server.optimization-handler-{self.proc_hash}')
+            f'summit-server.optimization-handler-{self.proc_hash[:6]}')
 
     def _build_domain(self, parameters):
         """ Build SUMMIT domain from given parameters dictionary.
@@ -167,9 +167,12 @@ class OptimizationHandler:
         if self.strategy is None:
             self._build_domain(request)
             self.build_strategy()
-            return self.strategy.to_dict()
+            return {'strategy': self.strategy.to_dict()}
 
         if 'result' in request:
             self.register_result(request)
 
-        return self.query_next_experiment()
+        next_experiment = self.query_next_experiment()
+        # appending strategy for client backup
+        next_experiment.update(strategy=self.strategy.to_dict())
+        return next_experiment
