@@ -61,10 +61,10 @@ class SummitServer:
             self.logger.debug('Available events - %s', events)
             for key, mask in events:
                 if key.data == 1: # incoming connection
-                    self.logger.debug('Incoming connection %s', key)
+                    self.logger.debug('Incoming connection %s', key.fileobj)
                     self.accept(key.fileobj, mask)
                 elif key.data == 2: # incoming message over connection
-                    self.logger.debug('Read ready %s', key)
+                    self.logger.debug('Read ready %s', key.fileobj)
                     # only True when connection is closed
                     closed = self.handler(key.fileobj)
                     if closed:
