@@ -1,5 +1,6 @@
 """ Initialize SummitServer and run its main loop. """
 
+import atexit
 import argparse
 
 from summitserver import SummitServer
@@ -17,4 +18,10 @@ if args['host'] != DEFAULT_HOST:
     SummitServer.HOST = args['host']
 
 ss = SummitServer(args['port'])
-ss.main()
+try:
+    ss.main()
+except Exception as e:
+    print('\nException happened, interrupting.')
+    ss.server.close()
+    print('Server closed')
+    raise e
