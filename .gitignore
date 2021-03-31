@@ -20,3 +20,6 @@ _archive/
 
 # log files
 *.log
+
+# misc
+*.out

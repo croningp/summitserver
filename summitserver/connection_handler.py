@@ -8,6 +8,8 @@ import traceback
 from .optimization_handler import OptimizationHandler
 
 
+DEFAULT_BUFFER_SIZE = 4096
+
 class Handler:
 
     def __init__(self):
@@ -49,7 +51,7 @@ class Handler:
         if connection not in self.connections:
             self.register_connection(connection)
         try:
-            request = connection.recv(1024)
+            request = connection.recv(DEFAULT_BUFFER_SIZE)
         except ConnectionResetError:
             self.logger.info('Connection <%s> reset',
                               connection.getsockname())

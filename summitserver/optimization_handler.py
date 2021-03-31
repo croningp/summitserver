@@ -14,6 +14,11 @@ from .constants import ALGORITHMS_MAPPING
 
 
 DATA = 'DATA' # metadata for physical data in summit DataSet
+# Keys for json communication
+N_BATCHES = 'n_batches'
+PARAMETERS = 'parameters'
+RESULT = 'result'
+
 
 def to_dataset(data):
     """ Build SUMMIT DataSet object from parameter dictionary.
@@ -28,12 +33,29 @@ def to_dataset(data):
     Returns:
         :obj:DataSet: SUMMIT dataset.
     """
-    # appending parameters metadata
-    ds = {(key, DATA): value for key, value in data['parameters'].items()}
-    # appending result metadata
-    ds.update({(key, DATA): value for key, value in data['result'].items()})
+    # "Unpacking"
+    n_batches = data[N_BATCHES] # Number of last experiments
+    parameters = data[PARAMETERS]
+    results = data[RESULT]
+    # Special case to pick all experiments
+    if n_batches == -1:
+        n_batches = 0
+    # Creating an index list for picking certain parameters/results
+    # From an array of the first result in recorded results
+    first_result = results[list(results)[0]]
+    idx_list = list(range(len(first_result)))
+    # Building dictionaries for dataset
+    dss = []
+    # Iterating over an array of results for the first result
+    # In reverse order, assuming latest experiments are always appended
+    for idx in idx_list[-n_batches:]:
+        # Appending parameters metadata
+        ds = {(key, DATA): values[idx] for key, values in parameters.items()}
+        # Appending result metadata
+        ds.update({(key, DATA): values[idx] for key, values in results.items()})
+        dss.append(ds)
 
-    ds = DataSet([ds], columns=[key[0] for key in ds])
+    ds = DataSet(dss, columns=[key[0] for key in ds])
 
     return ds
 
@@ -113,6 +135,7 @@ class OptimizationHandler:
 
     def query_next_experiment(self):
         """ Calls the strategy for the new parameter set. """
+        # TODO change this method when dealing with batches
         while True:
             try:
                 # will return a tuple from DataFrame as (ROW_ID, VALUE)
@@ -150,7 +173,10 @@ class OptimizationHandler:
             self.logger.debug('Registering initial result from %s', request)
             self.last_results = to_dataset(request)
 
-        elif len(self.last_results) != len(self.prev_suggestion):
+        # TODO check which algorithms do not store information inside
+        # And therefore require full results list when querying for the next
+        # Parameter setup
+        elif len(self.last_results) == len(self.prev_suggestion):
             # last result should always match
             # the dimension of previously suggested experiment DataSet
             self.last_results = self.last_results.append(
