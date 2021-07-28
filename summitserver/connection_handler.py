@@ -5,7 +5,8 @@ import json
 import logging
 import traceback
 
-from .optimization_handler import OptimizationHandler
+#from .optimization_handler import OptimizationHandler
+from .olympus_wrapper import OlympusWrapper as OptimizationHandler
 
 
 class Handler:
