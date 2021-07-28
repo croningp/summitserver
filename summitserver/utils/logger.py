@@ -12,7 +12,7 @@ def get_logger(
         logger_name='summit-server',
         stream_level=10,
         logger_filename='summit_server.log'
-):
+) -> logging.Logger:
     """ Returns logger instance with preset stream and file handlers.
 
     Args:

@@ -4,28 +4,30 @@ Server wrapper of the Summit benchmarking library
 """
 import selectors
 import socket
+import logging
 
 from .utils.logger import get_logger
 from .connection_handler import Handler
 
 
 class SummitServer:
-    """ TCPIP server to allow communication with the Summit benchmarking module.
+    """
+    TCPIP server to allow communication with the Summit benchmarking module.
     """
 
     HOST = 'dragonsoop2'
 
-    def __init__(self, port=12111):
+    def __init__(self, port: int = 12111) -> None:
 
-        self.logger = get_logger()
+        self.logger: logging.Logger = get_logger()
 
-        self.selector = selectors.DefaultSelector()
+        self.selector: selectors.BaseSelector = selectors.DefaultSelector()
 
-        self.server = self.start_server(port)
+        self.server: socket.socket = self.start_server(port)
 
-        self.handler = Handler()
+        self.handler: Handler = Handler()
 
-    def start_server(self, port):
+    def start_server(self, port: int) -> socket.socket:
         """ Starts a TCPIP socket, listening at "dragonsoop2" and given port.
         """
 
@@ -42,7 +44,7 @@ class SummitServer:
 
         return server
 
-    def accept(self, sock, mask):
+    def accept(self, sock: socket.socket, mask: int) -> None:
         """ Accepts incoming connection and register the corresponding socket
             in the selector. """
 
@@ -52,7 +54,7 @@ class SummitServer:
         events = selectors.EVENT_READ
         self.selector.register(conn, events, data=2)
 
-    def main(self):
+    def main(self) -> None:
         """ Main loop, wait on available events and service incoming
             connections. """
         self.logger.info('Running main loop')
@@ -69,3 +71,16 @@ class SummitServer:
                     closed = self.handler(key.fileobj)
                     if closed:
                         self.selector.unregister(key.fileobj)
+
+    def stop_server(self) -> None:
+        """Stops the summit server from running."""
+
+        # Unregister from the selector
+        self.selector.unregister(self.server)
+        self.logger.debug('Server unregistered.')
+        # Shutdown server
+        self.server.shutdown(socket.SHUT_RDWR)
+        self.logger.debug('Server shut.')
+        # Closing server
+        self.server.close()
+        self.logger.info('Server closed.')

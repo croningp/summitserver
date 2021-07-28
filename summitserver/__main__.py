@@ -17,11 +17,11 @@ args = vars(parser.parse_args())
 if args['host'] != DEFAULT_HOST:
     SummitServer.HOST = args['host']
 
-ss = SummitServer(args['port'])
+ss: SummitServer = SummitServer(args['port'])
 try:
     ss.main()
 except Exception as e:
     print('\nException happened, interrupting.')
-    ss.server.close()
+    ss.stop_server()
     print('Server closed')
     raise e

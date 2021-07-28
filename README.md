@@ -25,8 +25,8 @@ serv = SummitServer(port=12111)
 serv.main()
 ```
 
-Be sure to close server socket when done:
+Be sure to stop server when done:
 
 ```python
-serv.server.close()
+serv.stop_server()
 ```
