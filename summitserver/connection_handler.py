@@ -69,6 +69,7 @@ class Handler:
 
         try:
             request = connection.recv(DEFAULT_BUFFER_SIZE)
+            print("MSG:: ", request)
 
         except ConnectionResetError:
             self.logger.info('Connection <%s> reset', connection)
