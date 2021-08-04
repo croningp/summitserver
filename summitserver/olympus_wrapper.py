@@ -9,7 +9,6 @@ from olympus import Planner, Observations
 #from .constants import ALGORITHMS_MAPPING
 
 
-DATA = 'DATA' # metadata for physical data in summit DataSet
 # Keys for json communication
 N_BATCHES = 'n_batches'
 N_RETURNS = 'n_returns'
@@ -77,7 +76,9 @@ class OlympusWrapper:
         Args:
             param_space (Olympus.ParameterSpace)    Optimizer data
         """
-        self.planner = Planner(param_space=self.param_space, **self.algorithm_props)
+        self.planner = Planner(
+            param_space=self.param_space,
+            goal='maximize', **self.algorithm_props)
 
         return self.planner
 
@@ -85,19 +86,30 @@ class OlympusWrapper:
         """
         Add latest run to Olympus.compaign.observations and pass to Olympus.Planner.
         """
-
-        parameters = []
-
-        for batch in request[PARAMETERS]:
-
+        if request[N_BATCHES] == -1:
+            #FIXME
+            # load all values
+            pass
+        elif request[N_BATCHES] == 1:
+            parameters = []
             param_set = []
+            for vals in request[PARAMETERS].values():
+                param_set.append(vals[-1])
+            parameters.append(param_set)           
+            #TODO add results
+        else:
+            raise NotImplementedError("Parallel Optimization is not supported with Olympus.")
 
-            for param in batch.values():
-                param_set.append(param["current_value"])
-            
-            parameters.append(param_set)
+        # parameters = []
+        # for i in range(self.batch_size):
+        #     param_set = []
+        #     for vals in request[PARAMETERS].values():
+        #         param_set.append(vals[i])
+        #     parameters.append(param_set)
 
-        results = list(data["result"].values())
+        # Needs to be changed for multi-objectives
+        #FIXME
+        results = list(request[RESULT].values())[0]
 
         #FIXME Pass parameters and results in right format...currently looks buggy
         self.observations.add_observation(parameters, results)
@@ -106,13 +118,16 @@ class OlympusWrapper:
         """
         Ask planner for next point
         """
+        # parallel not supported, always return n=1 points
         point = self.planner.ask()
-        return point.to_dict()
+        return {"batch 1":point.to_dict()}
 
 
     def __call__(self, request):
         """
         Main call to handle request.
+        request: {"hash":"abc", "parameters":{}}
+
         """
         if self.planner is None:
             self.build_paramspace(request)
@@ -126,3 +141,7 @@ class OlympusWrapper:
         # appending strategy for client backup
         # next_experiment.update(planner=self.planner.to_dict())
         return next_experiment
+
+        #
+        # {"batch 1": {"Add_1": 4.1, "Wait_2": 6.15},
+        # "batch 2: {"Add_1": 2.5, "Wait_2": 1.5}"}
