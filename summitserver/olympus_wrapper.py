@@ -135,8 +135,6 @@ class OlympusWrapper:
 
             # add to observations
             self.observations.add_observation(last_params, last_value)
-        else:
-            raise NotImplementedError("Parallel Optimization is not supported with Olympus.")
 
         # Pass parameters to planner
         self.planner.tell(self.observations)
