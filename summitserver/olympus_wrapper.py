@@ -3,7 +3,7 @@ Module represents an optimization request handler.
 """
 import logging
 from typing import Union, Any
-from olympus import ParameterSpace, Parameter
+from olympus import ParameterSpace, Parameter, ParameterVector
 from olympus import Planner, Observations
 
 #from .constants import ALGORITHMS_MAPPING
@@ -87,32 +87,59 @@ class OlympusWrapper:
         Add latest run to Olympus.compaign.observations and pass to Olympus.Planner.
         """
         if request[N_BATCHES] == -1:
-            #FIXME
             # load all values
-            pass
+            results_list = list(request[RESULT].values())[0]
+            num_experiments = len(results_list)
+
+            #initialize empty dictionary, keeping track of order
+            all_results = {i:{} for i in range(num_experiments)}
+            all_params = {i:{} for i in range(num_experiments)}
+
+            # parse all values
+            for k, vals in request[RESULT].items():
+                for idx, v in enumerate(vals):
+                    all_results[idx].update({k:v})
+
+            for idx, result in all_results.items():
+                all_results[idx] = ParameterVector(None, result)
+
+            # parse all parameters
+            for k, vals in request[PARAMETERS].items():
+                for idx, v in enumerate(vals):
+                    all_params[idx].update({k:v})
+
+            for idx, param_set in all_params.items():
+                all_params[idx] = ParameterVector(None, param_set)
+
+            # add to observations
+            for i in range(num_experiments):
+                self.observations.add_observation(all_params[i], all_results[i])
+    
+
         elif request[N_BATCHES] == 1:
-            parameters = []
-            param_set = []
-            for vals in request[PARAMETERS].values():
-                param_set.append(vals[-1])
-            parameters.append(param_set)           
-            #TODO add results
+            # load only the last experiment
+
+            # parse last params
+            last_params = {}
+            for k, vals in request[PARAMETERS].items():
+                last_params.update({k:vals[-1]})
+
+            last_params = ParameterVector(None, last_params)
+            
+            # parse last value
+            for k, vals in request[RESULT].items():
+                # FIXME Needs to be changed for multi-objectives
+                last_value = {k:vals[-1]}
+
+            last_value = ParameterVector(None, last_value)
+
+            # add to observations
+            self.observations.add_observation(last_params, last_value)
         else:
             raise NotImplementedError("Parallel Optimization is not supported with Olympus.")
 
-        # parameters = []
-        # for i in range(self.batch_size):
-        #     param_set = []
-        #     for vals in request[PARAMETERS].values():
-        #         param_set.append(vals[i])
-        #     parameters.append(param_set)
-
-        # Needs to be changed for multi-objectives
-        #FIXME
-        results = list(request[RESULT].values())[0]
-
-        #FIXME Pass parameters and results in right format...currently looks buggy
-        self.observations.add_observation(parameters, results)
+        # Pass parameters to planner
+        self.planner.tell(self.observations)
 
     def query_next_experiment(self):
         """
