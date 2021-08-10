@@ -42,6 +42,8 @@ class OlympusWrapper:
 
         self.suggestion = None
 
+        self.last_point_asked = None
+
         self.batch_size: int = 1
 
         # registering logger
@@ -80,6 +82,8 @@ class OlympusWrapper:
             param_space=self.param_space,
             goal='maximize', **self.algorithm_props)
 
+        self.logger.debug('Built Olympus Planner.')
+
         return self.planner
 
     def register_result(self, request):
@@ -88,6 +92,8 @@ class OlympusWrapper:
         """
         if request[N_BATCHES] == -1:
             # load all values
+            self.logger.debug("Adding all data points to observations.")
+
             results_list = list(request[RESULT].values())[0]
             num_experiments = len(results_list)
 
@@ -118,6 +124,7 @@ class OlympusWrapper:
 
         elif request[N_BATCHES] == 1:
             # load only the last experiment
+            self.logger.debug("Adding the last data point to observations.")
 
             # parse last params
             last_params = {}
@@ -137,15 +144,41 @@ class OlympusWrapper:
             self.observations.add_observation(last_params, last_value)
 
         # Pass parameters to planner
-        self.planner.tell(self.observations)
+        try:
+            self.planner.tell(self.observations)
+        except IndexError:
+            self.logger.debug("Handling exception when telling point twice.")
+            #print("Error when telling...")
+
+        self.logger.debug("Register result.")
 
     def query_next_experiment(self):
         """
         Ask planner for next point
         """
         # parallel not supported, always return n=1 points
-        point = self.planner.ask()
-        return {"batch 1":point.to_dict()}
+        try:
+            self.logger.debug("Asking for the next point to evaluate.")
+            point = self.planner.ask()
+
+            if self.last_point_asked is not None:
+                if point.to_dict() == self.last_point_asked.to_dict():
+                    self.logger.debug("Obtained same point, rebuilding planner.")
+                    #print("Asking the same point twice...suspicious...rebuilding planner")
+                    self.build_planner
+                    point = self.planner.ask()
+                    #print("Point after rebuilding", point)
+                #else:
+                    #print("Wuhu, a new point", point)
+                    #print("old point: ", self.last_point_asked)
+
+            self.last_point_asked = point
+
+        except IndexError:
+            self.logger.debug("Handling exception when asking for point twice.")
+            #print("Error when asking...fall back to last value")
+
+        return {"batch 1":self.last_point_asked.to_dict()}
 
 
     def __call__(self, request):
