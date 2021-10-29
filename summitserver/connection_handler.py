@@ -66,16 +66,28 @@ class Handler:
         if connection not in self.connections:
             self.register_connection(connection)
 
+        request = b''
         try:
-            request = connection.recv(DEFAULT_BUFFER_SIZE)
+            chunk = connection.recv(DEFAULT_BUFFER_SIZE)
+
+            if not chunk:
+                self.logger.info('Connection %s closed', connection)
+                connection.close()
+                return True
+
+            self.logger.debug('Incoming message, reading')
+
+            while chunk:
+                self.logger.debug('Request chunk received: %s', chunk.decode())
+                request += chunk
+                try:
+                    chunk = connection.recv(DEFAULT_BUFFER_SIZE)
+                except BlockingIOError:
+                    self.logger.debug('Forged request: %s', request.decode())
+                    break
 
         except ConnectionResetError:
             self.logger.info('Connection <%s> reset', connection)
-            connection.close()
-            return True
-
-        if not request:
-            self.logger.info('Connection %s closed', connection)
             connection.close()
             return True
 
