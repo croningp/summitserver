@@ -33,8 +33,7 @@ class SummitServer:
 
         self.logger.info('Starting server at %s:%d', self.HOST, port)
 
-        server = socket.socket()
-        server.bind((self.HOST, port))
+        server = socket.create_server((self.HOST, port), reuse_port=True)
         server.listen(5)
         server.setblocking(False)
 
@@ -84,3 +83,6 @@ class SummitServer:
         # Closing server
         self.server.close()
         self.logger.info('Server closed.')
+        # Server closed, closing selector to free up the socket
+        self.selector.close()
+        self.logger.info('Selector closed.')
