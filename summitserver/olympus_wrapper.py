@@ -177,8 +177,11 @@ class OlympusWrapper:
         except IndexError:
             self.logger.debug("Handling exception when asking for point twice.")
             #print("Error when asking...fall back to last value")
+        param_set = self.last_point_asked.to_dict()
+        # convert numpy to normal float
+        param_set = {k:float(v) for k,v in param_set.items()}
 
-        return {"batch 1":self.last_point_asked.to_dict()}
+        return {"batch 1":param_set}
 
 
     def __call__(self, request):
@@ -198,6 +201,7 @@ class OlympusWrapper:
         next_experiment = self.query_next_experiment()
         # appending strategy for client backup
         # next_experiment.update(planner=self.planner.to_dict())
+        
         return next_experiment
 
         #
