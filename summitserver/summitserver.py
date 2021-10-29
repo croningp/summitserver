@@ -33,7 +33,8 @@ class SummitServer:
 
         self.logger.info('Starting server at %s:%d', self.HOST, port)
 
-        server = socket.create_server((self.HOST, port), reuse_port=True)
+        server = socket.socket()
+        server.bind((self.HOST, port))
         server.listen(5)
         server.setblocking(False)
 
