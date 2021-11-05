@@ -8,6 +8,6 @@ setup(
     author_email="artem.leonov@glasgow.ac.uk",
     packages=find_packages(),
     install_requires=[
-        "summit",
+        #"summit",
     ]
 )
